@@ -492,10 +492,18 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label=T
     nc = prediction[0].shape[1] - 5  # number of classes
     multi_label &= nc > 1  # multiple labels per box
     output = [None] * prediction.shape[0]
+    print("OUTPUT")
+    print(prediction.shape)
+    print(len(prediction))
     for xi, x in enumerate(prediction):  # image index, image inference
+        
+        print(x[x[:,4]> conf_thres].shape)
+        print(x.shape)
+        print(xi)
+        input("IMAGE")
         # Apply constraints
-        x = x[x[:, 4] > conf_thres]  # confidence
-        x = x[((x[:, 2:4] > min_wh) & (x[:, 2:4] < max_wh)).all(1)]  # width-height
+        x = x[x[:, 4] > conf_thres]  # confidence # prende solo i risultati maggiori della soglia
+        x = x[((x[:, 2:4] > min_wh) & (x[:, 2:4] < max_wh)).all(1)]  # width-height #prende solo i bbox che sono dentro al valore minimo e massimo
 
         # If none remain process next image
         if not x.shape[0]:
@@ -548,7 +556,7 @@ def non_max_suppression(prediction, conf_thres=0.1, iou_thres=0.6, multi_label=T
         output[xi] = x[i]
         if (time.time() - t) > time_limit:
             break  # time limit exceeded
-
+        
     return output
 
 

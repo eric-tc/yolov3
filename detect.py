@@ -6,7 +6,7 @@ from utils.utils import *
 
 
 def detect(save_img=False):
-    imgsz = (320, 192) if ONNX_EXPORT else opt.img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
+    imgsz = (608, 608) if ONNX_EXPORT else opt.img_size  # (320, 192) or (416, 256) or (608, 352) for (height, width)
     out, source, weights, half, view_img, save_txt = opt.output, opt.source, opt.weights, opt.half, opt.view_img, opt.save_txt
     webcam = source == '0' or source.startswith('rtsp') or source.startswith('http') or source.endswith('.txt')
 
@@ -22,7 +22,10 @@ def detect(save_img=False):
     # Load weights
     attempt_download(weights)
     if weights.endswith('.pt'):  # pytorch format
+        print(device)
+        input()
         model.load_state_dict(torch.load(weights, map_location=device)['model'])
+        #model=torch.load(weights, map_location=device)['model']
     else:  # darknet format
         load_darknet_weights(model, weights)
 
@@ -41,10 +44,12 @@ def detect(save_img=False):
 
     # Export mode
     if ONNX_EXPORT:
-        model.fuse()
-        img = torch.zeros((1, 3) + imgsz)  # (1, 3, 320, 192)
+        # serve per la quantizzazione unisce BN+Conv2d
+        #model.fuse()
+        #img = torch.zeros((1, 3) + imgsz)  # (1, 3, 320, 192)
+        img = torch.randn(1, 3, 608, 608, device='cpu')
         f = opt.weights.replace(opt.weights.split('.')[-1], 'onnx')  # *.onnx filename
-        torch.onnx.export(model, img, f, verbose=False, opset_version=11,
+        torch.onnx.export(model, img, f, verbose=True, opset_version=11,
                           input_names=['images'], output_names=['classes', 'boxes'])
 
         # Validate exported model
@@ -93,6 +98,8 @@ def detect(save_img=False):
         if half:
             pred = pred.float()
 
+        print(pred.shape)
+        input("pred")
         # Apply NMS
         pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres,
                                    multi_label=False, classes=opt.classes, agnostic=opt.agnostic_nms)
@@ -171,7 +178,7 @@ if __name__ == '__main__':
     parser.add_argument('--weights', type=str, default='weights/yolov3-spp-ultralytics.pt', help='weights path')
     parser.add_argument('--source', type=str, default='data/samples', help='source')  # input file/folder, 0 for webcam
     parser.add_argument('--output', type=str, default='output', help='output folder')  # output folder
-    parser.add_argument('--img-size', type=int, default=512, help='inference size (pixels)')
+    parser.add_argument('--img-size', type=int, default=608, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.3, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.6, help='IOU threshold for NMS')
     parser.add_argument('--fourcc', type=str, default='mp4v', help='output video codec (verify ffmpeg support)')
